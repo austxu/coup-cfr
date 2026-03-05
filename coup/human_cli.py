@@ -32,6 +32,13 @@ def main():
     game = CoupGame(agents, num_players=2, verbose=True)
 
     print("\nStarting game! You are playing against the PPO AI.")
+
+    # Find the human player's index and show their starting hand
+    human_idx = agents.index(human_agent)
+    human_state = game.state.players[human_idx]
+    print(f"\nYour starting hand: {[c.name for c in human_state.cards]}")
+    print("-" * 25)
+
     winner_idx = game.play_game()
 
     if winner_idx is not None:
