@@ -9,7 +9,7 @@ class CoupLSTMPPO(nn.Module):
     allowing the agent to build a mental model of the opponent's
     playstyle (e.g., estimating their bluff_rate or challenge_rate).
     """
-    def __init__(self, input_dim=23, hidden_dim=64, num_actions=15):
+    def __init__(self, input_dim=35, hidden_dim=64, num_actions=15):
         super(CoupLSTMPPO, self).__init__()
         
         # 1. Feature Extractor

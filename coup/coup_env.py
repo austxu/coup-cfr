@@ -165,7 +165,11 @@ class CoupEnv(gym.Env):
         # Revealed cards counts: 5 (max 3 each)
         # Decision type one-hot: 5 (ACT, CHL, CTR, CC, LOSE)
         # Pending card claim one-hot (context): 5
-        self.observation_space = spaces.Box(low=0.0, high=10.0, shape=(23,), dtype=np.float32)
+        # My claimed cards one-hot: 5 (NEW)
+        # Opponent claimed cards one-hot: 5 (NEW)
+        # My caught bluff count: 1 (NEW)
+        # Opponent caught bluff count: 1 (NEW)
+        self.observation_space = spaces.Box(low=0.0, high=10.0, shape=(35,), dtype=np.float32)
         
         self.opponent_cls = opponent_cls  # Set for evaluation, otherwise PBT Zoo handles opponent
         
@@ -252,7 +256,7 @@ class CoupEnv(gym.Env):
                 reward = 0.0
                 
             self.game_thread.join()
-            return np.zeros(23, dtype=np.float32), reward, True, False, {'action_mask': np.zeros(RLAction.SIZE, dtype=bool)}
+            return np.zeros(35, dtype=np.float32), reward, True, False, {'action_mask': np.zeros(RLAction.SIZE, dtype=bool)}
 
         # Otherwise, parse the game state request into a vector observation
         obs, action_mask = self._encode_state(msg)
@@ -263,7 +267,7 @@ class CoupEnv(gym.Env):
         view = msg['view']
         ctx = msg['context']
         
-        obs = np.zeros(23, dtype=np.float32)
+        obs = np.zeros(35, dtype=np.float32)
         mask = np.zeros(RLAction.SIZE, dtype=bool)
         
         # 0-4: My cards (one hot)
@@ -283,20 +287,34 @@ class CoupEnv(gym.Env):
         for c in opp['revealed']:
             obs[8 + cards_idx[c]] += 1.0
             
-        # 13-17: Decision Type
-        dec_map = {'ACT': 13, 'CHL': 14, 'CTR': 15, 'CC': 16, 'LOSE': 17}
+        # 13-17: My Claimed Cards
+        for c in view.get('my_claimed_cards', []):
+            obs[13 + cards_idx[c]] = 1.0
+            
+        # 18-22: Opponent's Claimed Cards
+        for c in opp.get('claimed_cards', []):
+            obs[18 + cards_idx[c]] = 1.0
+            
+        # 23: My Caught Bluff Count
+        obs[23] = float(view.get('my_caught_bluff_count', 0))
+        
+        # 24: Opponent's Caught Bluff Count
+        obs[24] = float(opp.get('caught_bluff_count', 0))
+            
+        # 25-29: Decision Type
+        dec_map = {'ACT': 25, 'CHL': 26, 'CTR': 27, 'CC': 28, 'LOSE': 29}
         obs[dec_map[req_type]] = 1.0
         
-        # 18-22: Context Card (if applicable)
+        # 30-34: Context Card (if applicable)
         if req_type == 'CHL' and isinstance(ctx, Card):
-            obs[18 + cards_idx[ctx]] = 1.0
+            obs[30 + cards_idx[ctx]] = 1.0
         elif req_type == 'CTR' and isinstance(ctx, dict):
             # No specific card is claimed in a Steal/Foreign Aid before the counter,
             # but we can optionally encode the action type being countered (Steal/FA).
             # For simplicity, we leave context 0.0 for CTR.
             pass
         elif req_type == 'CC' and isinstance(ctx, Card):
-            obs[18 + cards_idx[ctx]] = 1.0
+            obs[30 + cards_idx[ctx]] = 1.0
 
         # Action Mask
         if req_type == 'ACT':

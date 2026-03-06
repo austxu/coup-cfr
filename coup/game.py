@@ -65,7 +65,7 @@ class Action:
         self.target_idx = target_idx
 
     def __repr__(self):
-        target = f" -> P{self.target_idx}" if self.target_idx is not None else ""
+        target = f" -> {self.state.names[self.target_idx]}" if self.target_idx is not None else ""
         return f"Action({self.action_type.value}{target})"
 
 
@@ -77,6 +77,8 @@ class Player:
         self.coins = 2
         self.cards = list(cards)       # hidden cards (alive influence)
         self.revealed = []             # face-up cards (dead influence)
+        self.claimed_cards = set()     # cards claimed during this game
+        self.caught_bluff_count = 0    # number of times this player lost a challenge
 
     @property
     def alive(self) -> bool:
@@ -107,6 +109,8 @@ class Player:
         p.coins = self.coins
         p.cards = list(self.cards)
         p.revealed = list(self.revealed)
+        p.claimed_cards = set(self.claimed_cards)
+        p.caught_bluff_count = self.caught_bluff_count
         return p
 
 
@@ -120,8 +124,9 @@ class GameState:
     never access this object directly.
     """
 
-    def __init__(self, num_players: int):
+    def __init__(self, num_players: int, names: List[str] = None):
         assert 2 <= num_players <= 6, "Coup supports 2-6 players"
+        self.names = names or [f"{self.state.names[i]}" for i in range(num_players)]
 
         # Create and shuffle the 15-card court deck
         self.court_deck: List[Card] = []
@@ -181,6 +186,7 @@ class GameState:
     def clone(self) -> 'GameState':
         """Fast clone for CFR tree traversal (no deepcopy)."""
         gs = GameState.__new__(GameState)
+        gs.names = self.names
         gs.court_deck = list(self.court_deck)
         gs.players = [p._clone() for p in self.players]
         gs.current_player_idx = self.current_player_idx
@@ -199,14 +205,20 @@ class GameState:
             if p.player_id != player_idx:
                 opponents.append({
                     'player_id': p.player_id,
+                    'name': self.names[p.player_id],
                     'coins': p.coins,
                     'influence_count': p.influence_count,
                     'revealed': list(p.revealed),
+                    'claimed_cards': list(p.claimed_cards),
+                    'caught_bluff_count': p.caught_bluff_count,
                     'alive': p.alive,
                 })
         return {
             'player_id': player_idx,
+            'name': self.names[player_idx],
             'my_cards': list(player.cards),
+            'my_claimed_cards': list(player.claimed_cards),
+            'my_caught_bluff_count': player.caught_bluff_count,
             'my_coins': player.coins,
             'opponents': opponents,
             'action_history': self.action_history,  # reference, not copy
@@ -228,7 +240,9 @@ class CoupGame:
     def __init__(self, agents, num_players: int = 2, verbose: bool = False):
         assert len(agents) == num_players
         self.agents = agents
-        self.state = GameState(num_players)
+        names = [getattr(a, 'name', f"P{i}") for i, a in enumerate(agents)]
+        self.state = GameState(num_players, names)
+
         self.verbose = verbose
         self.max_turns = 500  # safety limit
 
@@ -287,10 +301,11 @@ class CoupGame:
         Returns True if the challenge SUCCEEDED (claimer was bluffing).
         """
         claimer = self.state.players[claimer_idx]
+        claimer.claimed_cards.add(claimed_card)
 
         if claimer.has_card(claimed_card):
             # Challenge FAILED — claimer actually had the card
-            self.log(f"    Challenge FAILED: P{claimer_idx} had {claimed_card.value}")
+            self.log(f"    Challenge FAILED: {self.state.names[claimer_idx]} had {claimed_card.value}")
 
             # Claimer shuffles the revealed card back and draws a new one
             claimer.cards.remove(claimed_card)
@@ -304,7 +319,8 @@ class CoupGame:
             return False
         else:
             # Challenge SUCCEEDED — claimer was bluffing
-            self.log(f"    Challenge SUCCEEDED: P{claimer_idx} was bluffing!")
+            self.log(f"    Challenge SUCCEEDED: {self.state.names[claimer_idx]} was bluffing!")
+            claimer.caught_bluff_count += 1
             self._player_loses_influence(claimer_idx)
             return True
 
@@ -324,7 +340,7 @@ class CoupGame:
             card_idx = max(0, min(card_idx, player.influence_count - 1))
 
         lost_card = player.lose_influence(card_idx)
-        self.log(f"    P{player_idx} loses influence: {lost_card.value}"
+        self.log(f"    {self.state.names[player_idx]} loses influence: {lost_card.value}"
                  + (" (ELIMINATED)" if not player.alive else ""))
 
     # -------------------------------------------------------------------------
@@ -345,7 +361,7 @@ class CoupGame:
 
             view = self.state.get_player_view(p_idx)
             if self.agents[p_idx].choose_challenge(view, claimer_idx, claimed_card):
-                self.log(f"  P{p_idx} challenges P{claimer_idx}'s "
+                self.log(f"  {self.state.names[p_idx]} challenges {self.state.names[claimer_idx]}'s "
                          f"{claimed_card.value} claim!")
                 return p_idx
 
@@ -380,7 +396,7 @@ class CoupGame:
                 view, action.player_idx, action.action_type, blocking_cards
             )
             if result is not None:
-                self.log(f"  P{p_idx} blocks with {result.value}!")
+                self.log(f"  {self.state.names[p_idx]} blocks with {result.value}!")
                 return (p_idx, result)
 
         return None
@@ -395,24 +411,24 @@ class CoupGame:
 
         if action.action_type == ActionType.INCOME:
             player.coins += 1
-            self.log(f"  -> P{action.player_idx} takes Income ({player.coins} coins)")
+            self.log(f"  -> {self.state.names[action.player_idx]} takes Income ({player.coins} coins)")
 
         elif action.action_type == ActionType.FOREIGN_AID:
             player.coins += 2
-            self.log(f"  -> P{action.player_idx} takes Foreign Aid ({player.coins} coins)")
+            self.log(f"  -> {self.state.names[action.player_idx]} takes Foreign Aid ({player.coins} coins)")
 
         elif action.action_type == ActionType.COUP:
-            self.log(f"  -> P{action.player_idx} coups P{action.target_idx}")
+            self.log(f"  -> {self.state.names[action.player_idx]} coups {self.state.names[action.target_idx]}")
             self._player_loses_influence(action.target_idx)
 
         elif action.action_type == ActionType.TAX:
             player.coins += 3
-            self.log(f"  -> P{action.player_idx} takes Tax ({player.coins} coins)")
+            self.log(f"  -> {self.state.names[action.player_idx]} takes Tax ({player.coins} coins)")
 
         elif action.action_type == ActionType.ASSASSINATE:
             target = self.state.players[action.target_idx]
             if target.alive:
-                self.log(f"  -> P{action.player_idx} assassinates P{action.target_idx}")
+                self.log(f"  -> {self.state.names[action.player_idx]} assassinates {self.state.names[action.target_idx]}")
                 self._player_loses_influence(action.target_idx)
 
         elif action.action_type == ActionType.STEAL:
@@ -420,8 +436,8 @@ class CoupGame:
             stolen = min(2, target.coins)
             target.coins -= stolen
             player.coins += stolen
-            self.log(f"  -> P{action.player_idx} steals {stolen} from "
-                     f"P{action.target_idx}")
+            self.log(f"  -> {self.state.names[action.player_idx]} steals {stolen} from "
+                     f"{self.state.names[action.target_idx]}")
 
         elif action.action_type == ActionType.EXCHANGE:
             self._resolve_exchange(action.player_idx)
@@ -436,7 +452,7 @@ class CoupGame:
             drawn.append(self.state.court_deck.pop())
 
         if not drawn:
-            self.log(f"  -> P{player_idx} exchanges but deck is empty")
+            self.log(f"  -> {self.state.names[player_idx]} exchanges but deck is empty")
             return
 
         # Player sees all available cards and chooses which to keep
@@ -464,7 +480,7 @@ class CoupGame:
         self.state.court_deck.extend(returned)
         random.shuffle(self.state.court_deck)
 
-        self.log(f"  -> P{player_idx} exchanges cards")
+        self.log(f"  -> {self.state.names[player_idx]} exchanges cards")
 
     # -------------------------------------------------------------------------
     # Turn flow
@@ -480,8 +496,8 @@ class CoupGame:
             return
 
         self.state.turn_number += 1
-        self.log(f"\n--- Turn {self.state.turn_number}: P{player_idx} "
-                 f"({[c.value for c in player.cards]}, {player.coins} coins) ---")
+        self.log(f"\n--- Turn {self.state.turn_number}: {self.state.names[player_idx]} "
+                 f"({player.coins} coins) ---")
 
         # 1. Agent chooses an action
         legal_actions = self.get_legal_actions(player_idx)
@@ -489,7 +505,7 @@ class CoupGame:
         action = self.agents[player_idx].choose_action(view, legal_actions)
 
         self.log(f"  Action: {action.action_type.value}"
-                 + (f" -> P{action.target_idx}"
+                 + (f" -> {self.state.names[action.target_idx]}"
                     if action.target_idx is not None else ""))
 
         # Record in history
@@ -597,7 +613,7 @@ class CoupGame:
         winner = self.state.winner
         if winner is not None:
             self.log(f"\n{'='*40}")
-            self.log(f"  Player {winner} wins in {self.state.turn_number} turns!")
+            self.log(f"  {self.state.names[winner]} wins in {self.state.turn_number} turns!")
             self.log(f"{'='*40}")
         else:
             self.log(f"\n  Draw (max turns reached)")

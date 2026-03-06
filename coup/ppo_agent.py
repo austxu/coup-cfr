@@ -14,7 +14,7 @@ class PPOAgent(Agent):
     """
     def __init__(self, model_path: str, device: str = "cpu"):
         self.device = torch.device(device)
-        self.model = CoupLSTMPPO(input_dim=23, hidden_dim=64, num_actions=15).to(self.device)
+        self.model = CoupLSTMPPO(input_dim=35, hidden_dim=64, num_actions=15).to(self.device)
         self.model.load_state_dict(torch.load(model_path, map_location=self.device))
         self.model.eval()
         
