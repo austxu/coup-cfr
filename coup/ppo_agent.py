@@ -34,7 +34,11 @@ class PPOAgent(Agent):
         with torch.no_grad():
             logits, _, self.hidden_state = self.model(state_tensor, self.hidden_state)
             logits[~mask_tensor] = -1e9
-            action_idx = torch.argmax(logits).item() # Greedy evaluation
+            
+            # Use probabilistic sampling instead of greedy argmax so the AI varies its plays
+            from torch.distributions import Categorical
+            dist = Categorical(logits=logits)
+            action_idx = dist.sample().item()
             
         return action_idx
 
