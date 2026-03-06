@@ -3,6 +3,7 @@ import sys
 from .game import CoupGame
 from .human_agent import HumanAgent
 from .ppo_agent import PPOAgent
+from .cfr_agent import CFRAgent
 import random
 
 def main():
@@ -14,8 +15,12 @@ def main():
     # Load the AI
     print(f"Loading AI from {args.model}...")
     try:
-        ai_agent = PPOAgent(args.model, device=args.device)
-        ai_agent.name = "AI"
+        if args.model.endswith('.json'):
+            ai_agent = CFRAgent.from_file(args.model)
+            ai_agent.name = "CFR-AI"
+        else:
+            ai_agent = PPOAgent(args.model, device=args.device)
+            ai_agent.name = "PPO-AI"
     except FileNotFoundError:
         print(f"Error: Could not find model file {args.model}")
         sys.exit(1)
@@ -32,7 +37,7 @@ def main():
     random.shuffle(agents)
     game = CoupGame(agents, num_players=2, verbose=True)
 
-    print("\nStarting game! You are playing against the PPO AI.")
+    print(f"\nStarting game! You are playing against the {ai_agent.name}.")
 
     # Find the human player's index and show their starting hand
     human_idx = agents.index(human_agent)
