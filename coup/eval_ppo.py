@@ -45,7 +45,7 @@ def play_matchup(agent1, agent2, name1="PPO", name2="Opponent", num_games=1000):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--games", type=int, default=100)
-    parser.add_argument("--model", type=str, default="ppo_model_gen1.pt")
+    parser.add_argument("--model", type=str, default="versions/gen1-4/ppo_model_gen1.pt")
     parser.add_argument("--cfr-model", type=str, default="cfr_model.json")
     args = parser.parse_args()
 

@@ -90,8 +90,8 @@ def play_head_to_head(agent1, name1, agent2, name2, num_games=500):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate Gen 6 model")
-    parser.add_argument("--model", type=str, default="ppo_model_gen6.pt")
-    parser.add_argument("--opponent", type=str, default=None, help="Path to opponent model (e.g. ppo_model_gen5.pt)")
+    parser.add_argument("--model", type=str, default="versions/gen6/ppo_model_gen6.pt")
+    parser.add_argument("--opponent", type=str, default=None, help="Path to opponent model (e.g. versions/gen5/ppo_model_gen5.pt)")
     parser.add_argument("--players", type=int, default=4, help="Number of players for multi-player eval")
     parser.add_argument("--games", type=int, default=100)
     args = parser.parse_args()

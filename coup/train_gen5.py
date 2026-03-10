@@ -169,8 +169,8 @@ def main():
     parser = argparse.ArgumentParser(description="Train Gen 5 Coup LSTM PPO with Self-Play")
     parser.add_argument("--episodes", type=int, default=3500000)
     parser.add_argument("--rollout-size", type=int, default=200, help="Episodes per PPO update")
-    parser.add_argument("--base-model", type=str, default="ppo_model_gen5_init.pt")
-    parser.add_argument("--output", type=str, default="ppo_model_gen5.pt")
+    parser.add_argument("--base-model", type=str, default="versions/gen5/ppo_model_gen5_init.pt")
+    parser.add_argument("--output", type=str, default="versions/gen5/ppo_model_gen5.pt")
     args = parser.parse_args()
     
     device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
@@ -197,7 +197,7 @@ def main():
     total_episodes = 0
     
     # Open training log for continuous feedback
-    log_file = open("training_log_gen5.txt", "w")
+    log_file = open("versions/gen5/training_log_gen5.txt", "a")
     log_file.write(f"Starting Gen 5 Self-Play training for {args.episodes} episodes on {device}...\n")
     log_file.flush()
     print(f"Starting Gen 5 Self-Play training for {args.episodes} episodes...")

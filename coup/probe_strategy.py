@@ -114,7 +114,7 @@ def print_action_probs(probs, label=""):
 def main():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", default="ppo_model_gen5.pt")
+    parser.add_argument("--model", default="versions/gen5/ppo_model_gen5.pt")
     args = parser.parse_args()
     
     device = torch.device("cpu")

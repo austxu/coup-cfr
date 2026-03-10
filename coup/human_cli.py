@@ -8,7 +8,7 @@ import random
 
 def main():
     parser = argparse.ArgumentParser(description="Play Coup against trained AI!")
-    parser.add_argument("--model", type=str, default="ppo_model_gen5.pt", help="Path to the trained model")
+    parser.add_argument("--model", type=str, default="versions/gen5/ppo_model_gen5.pt", help="Path to the trained model")
     parser.add_argument("--device", type=str, default="cpu", help="Device (cpu/cuda/mps)")
     parser.add_argument("--players", type=int, default=2, help="Number of players (2-6)")
     args = parser.parse_args()

@@ -124,7 +124,7 @@ def main():
         elif name == 'ppo':
             from .ppo_agent import PPOAgent
             
-            # Use args.strategy parameter to pass the model weights (e.g. ppo_model_gen5.pt)
+            # Use args.strategy parameter to pass the model weights (e.g. versions/gen5/ppo_model_gen5.pt)
             if not os.path.exists(args.strategy):
                 parser.error(f"PPO Model file not found: {args.strategy}")
                 

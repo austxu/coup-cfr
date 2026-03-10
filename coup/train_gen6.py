@@ -202,7 +202,7 @@ def main():
     parser = argparse.ArgumentParser(description="Train Gen 6 N-Player Coup LSTM PPO")
     parser.add_argument("--episodes", type=int, default=2000000)
     parser.add_argument("--rollout-size", type=int, default=100, help="Episodes per PPO update (smaller for multiplayer)")
-    parser.add_argument("--output", type=str, default="ppo_model_gen6.pt")
+    parser.add_argument("--output", type=str, default="versions/gen6/ppo_model_gen6.pt")
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
@@ -212,7 +212,7 @@ def main():
     model = CoupLSTMPPOv2(input_dim=OBS_DIM, hidden_dim=512, num_actions=RLAction.SIZE, num_targets=TARGET_SIZE).to(device)
 
     # Initialize fresh weights
-    init_path = "ppo_model_gen6_init.pt"
+    init_path = "versions/gen6/ppo_model_gen6_init.pt"
     if not os.path.exists(init_path):
         print(f"Initializing fresh Gen 6 weights...")
         torch.save(model.state_dict(), init_path)
@@ -230,7 +230,7 @@ def main():
     start_time = time.time()
     total_episodes = 0
 
-    log_file = open("training_log_gen6.txt", "w")
+    log_file = open("versions/gen6/training_log_gen6.txt", "a")
     log_file.write(f"Starting Gen 6 N-Player training for {args.episodes} episodes on {device}...\n")
     log_file.flush()
     print(f"Starting Gen 6 N-Player training for {args.episodes} episodes...")
