@@ -105,7 +105,7 @@ def rollout(env, model, num_episodes, device, zoo):
     return states, actions, log_probs, rewards, dones, values, masks, episode_rewards
 
 
-def ppo_update(model, optimizer, states, actions, old_log_probs, returns, advantages, masks, device):
+def ppo_update(model, optimizer, states, actions, old_log_probs, returns, advantages, masks, dones, device):
     model.train()
     
     states_t = torch.FloatTensor(np.array(states)).to(device)
@@ -117,15 +117,30 @@ def ppo_update(model, optimizer, states, actions, old_log_probs, returns, advant
     
     advantages_t = (advantages_t - advantages_t.mean()) / (advantages_t.std() + 1e-8)
     
-    n_steps = len(states)
+    # Find episode boundaries from dones so each episode gets its own LSTM context
+    ep_ranges = []
+    start = 0
+    for i, d in enumerate(dones):
+        if d:
+            ep_ranges.append((start, i + 1))
+            start = i + 1
+    if start < len(states):
+        ep_ranges.append((start, len(states)))
     
     for _ in range(PPO_EPOCHS):
-        states_seq = states_t.unsqueeze(0)
-        hidden = model.reset_hidden(1, device)
-        logits, values, _ = model(states_seq, hidden)
+        # Process each episode as its own sequence with a fresh hidden state
+        all_logits = []
+        all_values = []
         
-        logits = logits.squeeze(0)
-        values = values.squeeze()
+        for ep_start, ep_end in ep_ranges:
+            ep_states = states_t[ep_start:ep_end].unsqueeze(0)  # (1, ep_len, input_dim)
+            hidden = model.reset_hidden(1, device)
+            ep_logits, ep_values, _ = model(ep_states, hidden)
+            all_logits.append(ep_logits.squeeze(0))       # (ep_len, num_actions)
+            all_values.append(ep_values.squeeze(0).squeeze(-1))  # (ep_len,)
+        
+        logits = torch.cat(all_logits, dim=0)
+        values = torch.cat(all_values, dim=0)
         
         logits[~masks_t] = -1e9
         
@@ -201,7 +216,7 @@ def main():
         
         # Update Model
         a_loss, c_loss, ent = ppo_update(
-            model, optimizer, b_states, b_actions, b_log_probs, returns, advantages, b_masks, device
+            model, optimizer, b_states, b_actions, b_log_probs, returns, advantages, b_masks, b_dones, device
         )
         
         # Logging

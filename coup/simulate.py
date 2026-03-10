@@ -107,7 +107,7 @@ def main():
     if not 2 <= len(args.agents) <= 6:
         parser.error("Need 2-6 agents")
 
-    valid_types = list(AGENT_TYPES.keys()) + ['cfr']
+    valid_types = list(AGENT_TYPES.keys()) + ['cfr', 'ppo']
     for name in args.agents:
         if name not in valid_types:
             parser.error(f"Unknown agent type: {name}. Choose from {valid_types}")
@@ -117,12 +117,20 @@ def main():
     for name in args.agents:
         if name == 'cfr':
             if not os.path.exists(args.strategy):
-                parser.error(f"Strategy file not found: {args.strategy}. "
-                             f"Train first with: python -m coup.train_cfr")
+                parser.error(f"Strategy file not found: {args.strategy}. Train first.")
             from .cfr_agent import CFRAgent
             cfr = CFRAgent.from_file(args.strategy)
-            # Wrap in a factory that returns the same instance
             agents_config.append((name, lambda _cfr=cfr: _cfr))
+        elif name == 'ppo':
+            from .ppo_agent import PPOAgent
+            
+            # Use args.strategy parameter to pass the model weights (e.g. ppo_model_gen5.pt)
+            if not os.path.exists(args.strategy):
+                parser.error(f"PPO Model file not found: {args.strategy}")
+                
+            # Usually use CPU for fast evaluation
+            ppo = PPOAgent(args.strategy, "cpu")
+            agents_config.append((name, lambda _ppo=ppo: _ppo))
         else:
             agents_config.append((name, AGENT_TYPES[name]))
 

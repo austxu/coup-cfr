@@ -545,11 +545,11 @@ class CoupGame:
             challenger_idx = self._ask_for_challenges(player_idx, claimed_card)
 
             if challenger_idx is not None:
-                history_entry['was_challenged'] = True
+                self.state.action_history[-1]['was_challenged'] = True
                 bluffing = self.resolve_challenge(
                     player_idx, challenger_idx, claimed_card
                 )
-                history_entry['challenge_won'] = bluffing
+                self.state.action_history[-1]['challenge_won'] = bluffing
                 if bluffing:
                     # Claimer was bluffing → action fails entirely
                     action_blocked = True
@@ -594,20 +594,20 @@ class CoupGame:
                     if (action.target_idx is None
                             or self.state.players[action.target_idx].alive):
                         if action.action_type == ActionType.ASSASSINATE:
-                            history_entry['card_lost'] = True
+                            self.state.action_history[-1]['card_lost'] = True
                         self._resolve_action(action)
                 else:
                     # Counter was legit → action is blocked
                     self.log(f"  Action blocked by {blocking_card.value}")
-                    history_entry['was_blocked'] = True
+                    self.state.action_history[-1]['was_blocked'] = True
             else:
                 # Counter not challenged → action is blocked
                 self.log(f"  Action blocked (unchallenged)")
-                history_entry['was_blocked'] = True
+                self.state.action_history[-1]['was_blocked'] = True
         else:
             # No counteraction → resolve the action
             if action.action_type == ActionType.ASSASSINATE:
-                history_entry['card_lost'] = True
+                self.state.action_history[-1]['card_lost'] = True
             self._resolve_action(action)
 
         self.state.total_cards_check()
