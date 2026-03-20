@@ -18,6 +18,7 @@
             <div class="glass-panel lobby-panel">
                 <h2>Welcome to Coup</h2>
                 <p>Play against the trained PPO-AI bot.</p>
+                <div id="lobby-stats" style="margin-bottom: 15px; font-weight: 600; color: var(--accent);">Record - Wins: 0 | Losses: 0</div>
                 <input type="text" id="player-name" placeholder="Enter your name" value="Human" />
                 <button id="start-btn" class="btn primary-btn">Start Game</button>
             </div>
@@ -75,7 +76,7 @@
         <div id="game-over-screen" class="screen glass-panel hidden">
             <h1 id="win-message">Game Over</h1>
             <div id="ai-reveal"></div>
-            <button id="rematch-btn" class="btn primary-btn" onclick="location.reload()">Play Again</button>
+            <button id="rematch-btn" class="btn primary-btn">Play Again</button>
         </div>
         
     </div>

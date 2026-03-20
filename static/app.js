@@ -12,8 +12,36 @@ socket.on('disconnect', () => { gameStatus.innerText = 'Disconnected'; });
 let myIdx = 0;
 let aiIdx = 1;
 
+// Initialization
+let stats = JSON.parse(localStorage.getItem('coupStats')) || {wins: 0, losses: 0};
+let savedName = localStorage.getItem('coupPlayerName') || 'Human';
+document.getElementById('player-name').value = savedName;
+
+function updateLobbyStats() {
+    const statsDiv = document.getElementById('lobby-stats');
+    if (statsDiv) {
+        statsDiv.innerText = `Record - Wins: ${stats.wins} | Losses: ${stats.losses}`;
+    }
+}
+updateLobbyStats();
+
+// Add logic for Play Again button
+document.getElementById('rematch-btn').addEventListener('click', () => {
+    gameOverScreen.classList.add('hidden');
+    gameOverScreen.style.display = 'none';
+    gameScreen.classList.remove('active');
+    lobbyScreen.classList.add('active');
+    gameStatus.innerText = 'Ready';
+    
+    document.getElementById('my-cards').innerHTML = '';
+    document.getElementById('ai-cards').innerHTML = '';
+    document.getElementById('action-feed').innerHTML = '';
+    document.getElementById('ai-reveal').innerHTML = '';
+});
+
 document.getElementById('start-btn').addEventListener('click', () => {
     const name = document.getElementById('player-name').value || 'Human';
+    localStorage.setItem('coupPlayerName', name);
     socket.emit('start_game', { player_name: name });
     lobbyScreen.classList.remove('active');
     gameScreen.classList.add('active');
@@ -204,6 +232,14 @@ socket.on('game_over', (data) => {
     let msg = "It's a Draw";
     if (data.winner !== 'Draw') {
         msg = `${data.winner} Wins!`;
+        const myName = document.getElementById('player-name').value || 'Human';
+        if (data.winner === myName) {
+            stats.wins++;
+        } else {
+            stats.losses++;
+        }
+        localStorage.setItem('coupStats', JSON.stringify(stats));
+        updateLobbyStats();
     }
     document.getElementById('win-message').innerText = msg;
     
