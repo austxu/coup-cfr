@@ -11,10 +11,11 @@
 
 <body>
     <div id="app">
-        <header class="glass-panel">
-            <h1>COUP <span class="highlight">ONLINE</span></h1>
-            <div id="game-status">Waiting to Start...</div>
-        </header>
+        <!-- Floating Score/Clear Box -->
+        <div id="top-score-box" class="glass-panel" style="position:fixed; top:1rem; right:1rem; padding:10px 15px; z-index:100; font-weight:bold; display:flex; align-items:center;">
+            <span id="top-stats">Wins: 0 | Losses: 0</span>
+            <button id="clear-score-btn" class="btn" style="margin:0 0 0 10px; padding:5px 10px; font-size:0.8rem; background:var(--accent);">Clear</button>
+        </div>
 
         <div id="lobby-screen" class="screen active">
             <div class="glass-panel lobby-panel">
