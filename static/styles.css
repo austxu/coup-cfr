@@ -151,12 +151,12 @@ input[type="text"]:focus {
 /* Game Board */
 .board {
     display: grid;
-    grid-template-rows: auto 1fr auto;
+    grid-template-columns: 1fr 2fr 1fr; /* AI Left, Center Feed, Player Right */
     width: 100%;
     height: 100%;
     padding: 1rem;
-    gap: 1rem;
-    max-width: 1200px;
+    gap: 2rem;
+    max-width: 1600px; /* Made wider for horizontal layout */
     margin: 0 auto;
 }
 
@@ -164,7 +164,8 @@ input[type="text"]:focus {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    gap: 1.5rem;
+    justify-content: center; /* Center vertically in their column */
 }
 
 .opponent {
@@ -176,12 +177,12 @@ input[type="text"]:focus {
 }
 
 .player-info {
-    padding: 1rem 2rem;
+    padding: 1rem 1.5rem;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 2rem;
-    min-width: 300px;
-    justify-content: space-between;
+    gap: 1rem;
+    min-width: 250px;
 }
 
 .player-info h2 {
@@ -198,6 +199,8 @@ input[type="text"]:focus {
 /* Cards */
 .cards-container {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 1rem;
     perspective: 1000px;
 }
@@ -217,6 +220,11 @@ input[type="text"]:focus {
 
 .card.hidden {
     background-image: url('images/card_back.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-color: transparent; /* Transparent behind the bear */
+    border: none;
+    box-shadow: none; /* Bear looks better without standard card shadow */
 }
 
 .card.revealed {
